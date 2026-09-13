@@ -114,7 +114,9 @@ def dump(name: str, body: Any, headers: dict[str, str], url: str) -> None:
     }
     target = SAMPLES_DIR / f"{name}.json"
     target.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"    -> {target.relative_to(Path.cwd()) if target.is_relative_to(Path.cwd()) else target}")
+    cwd = Path.cwd()
+    shown = target.relative_to(cwd) if target.is_relative_to(cwd) else target
+    print(f"    -> {shown}")
 
 
 def walk_structure(node: Any, path: str = "$", depth: int = 0) -> list[str]:
@@ -157,7 +159,9 @@ def collect_data_sources(gateway: dict[str, Any]) -> list[Any]:
                 walk(item, depth)
         elif isinstance(node, dict):
             identifier = find_id(node)
-            child_lists = [v for v in node.values() if isinstance(v, list) and v and isinstance(v[0], dict)]
+            child_lists = [
+                v for v in node.values() if isinstance(v, list) and v and isinstance(v[0], dict)
+            ]
             if identifier is not None:
                 found.setdefault(depth, []).append(identifier)
             for child in child_lists:
@@ -174,6 +178,7 @@ def collect_data_sources(gateway: dict[str, Any]) -> list[Any]:
 
 
 def main() -> int:
+    """Run the probe and write every sample, returning a process exit code."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gateway-id", help="override the gateway used for the measurements probe")
     parser.add_argument("--data-sources", help="override the comma-separated data source ids")
@@ -198,8 +203,10 @@ def main() -> int:
         (SAMPLES_DIR / "structure.txt").write_text("\n".join(structure) + "\n", encoding="utf-8")
 
         # Pick a gateway + its data sources for the measurements probe.
-        gateways = gws_body if isinstance(gws_body, list) else next(
-            (v for v in gws_body.values() if isinstance(v, list)), []
+        gateways = (
+            gws_body
+            if isinstance(gws_body, list)
+            else next((v for v in gws_body.values() if isinstance(v, list)), [])
         )
         if args.gateway_id and args.data_sources:
             gateway_id = args.gateway_id
@@ -211,7 +218,8 @@ def main() -> int:
         else:
             raise ProbeError("no gateways found in the response; pass --gateway-id/--data-sources")
 
-        print(f"\nusing gateway {gateway_id} with {len(data_source_ids)} data sources: {data_source_ids}")
+        print(f"\nusing gateway {gateway_id} with {len(data_source_ids)} data sources")
+        print(f"  {data_source_ids}")
         if not data_source_ids:
             raise ProbeError("could not derive data source ids; pass --data-sources explicitly")
 

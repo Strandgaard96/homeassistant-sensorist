@@ -1,0 +1,42 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sensorist account",
+        "description": "Sign in with the email address and password you use for the Sensorist app.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Sensorist",
+        "description": "The password for {email} was rejected. Enter the current password.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This account is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "wrong_account": "Those credentials are for a different Sensorist account."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": { "name": "Temperature" },
+      "humidity": { "name": "Humidity" },
+      "battery_voltage": { "name": "Battery voltage" },
+      "wireless": { "name": "Wireless quality" }
+    },
+    "binary_sensor": {
+      "connectivity": { "name": "Connectivity" }
+    }
+  }
+}

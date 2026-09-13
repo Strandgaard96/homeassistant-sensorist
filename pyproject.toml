@@ -1,0 +1,78 @@
+[project]
+name = "homeassistant-sensorist"
+version = "0.1.0"
+description = "Home Assistant custom integration for Sensorist environment sensors"
+requires-python = ">=3.13"
+
+[dependency-groups]
+dev = [
+    "homeassistant",
+    "pytest",
+    "pytest-homeassistant-custom-component",
+    "pytest-asyncio",
+    "aioresponses",
+    "ruff",
+    "mypy",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+# Baseline lifted from the Home Assistant core ruff configuration, trimmed to
+# the rules that apply to a single custom integration.
+select = [
+    "A",      # flake8-builtins
+    "ASYNC",  # flake8-async
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "D",      # pydocstyle
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "I",      # isort
+    "ICN",    # flake8-import-conventions
+    "LOG",    # flake8-logging
+    "N",      # pep8-naming
+    "PGH",    # pygrep-hooks
+    "PIE",    # flake8-pie
+    "PL",     # pylint
+    "PTH",    # flake8-use-pathlib
+    "RET",    # flake8-return
+    "RUF",    # ruff-specific
+    "SIM",    # flake8-simplify
+    "SLOT",   # flake8-slots
+    "T20",    # flake8-print
+    "TRY",    # tryceratops
+    "UP",     # pyupgrade
+    "W",      # pycodestyle warnings
+]
+ignore = [
+    "D203",    # conflicts with D211
+    "D213",    # conflicts with D212
+    "TRY003",  # long messages outside the exception class are fine here
+    "TRY400",  # logger.error is deliberate in places
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The discovery probe is a throwaway CLI: printing is the point, and it is not
+# part of the shipped integration.
+"scripts/discover.py" = ["T20", "TRY301"]
+"tests/*" = ["D100", "D103", "PLR2004"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+disallow_any_generics = true
+
+[[tool.mypy.overrides]]
+module = ["aioresponses.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,13 @@
+{
+  "domain": "sensorist",
+  "name": "Sensorist",
+  "codeowners": ["@magst"],
+  "config_flow": true,
+  "documentation": "https://github.com/magst/homeassistant-sensorist",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/magst/homeassistant-sensorist/issues",
+  "quality_scale": "silver",
+  "requirements": [],
+  "version": "0.1.0"
+}

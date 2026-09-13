@@ -1,0 +1,42 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sensorist account",
+        "description": "Sign in with the email address and password you use for the Sensorist app.",
+        "data": {
+          "email": "[%key:common::config_flow::data::email%]",
+          "password": "[%key:common::config_flow::data::password%]"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Sensorist",
+        "description": "The password for {email} was rejected. Enter the current password.",
+        "data": {
+          "password": "[%key:common::config_flow::data::password%]"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]",
+      "wrong_account": "Those credentials are for a different Sensorist account."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": { "name": "[%key:component::sensor::entity_component::temperature::name%]" },
+      "humidity": { "name": "[%key:component::sensor::entity_component::humidity::name%]" },
+      "battery_voltage": { "name": "Battery voltage" },
+      "wireless": { "name": "Wireless quality" }
+    },
+    "binary_sensor": {
+      "connectivity": { "name": "[%key:component::binary_sensor::entity_component::connectivity::name%]" }
+    }
+  }
+}
