@@ -1,0 +1,12 @@
+$ object keys=['code', 'max_age', 'time']
+  $.gateways list len=1
+    $.gateways[0] object keys=['disconnected_date', 'firmware', 'id', 'ipv4', 'local_ipv4', 'master_id', 'serial', 'title']
+      $.gateways[0].type object keys=['id', 'name']
+      $.gateways[0].devices list len=2
+        $.gateways[0].devices[0] object keys=['current_gateway_id', 'disconnected_date', 'firmware', 'id', 'serial', 'title']
+          $.gateways[0].devices[0].type object keys=['id', 'name']
+          $.gateways[0].devices[0].devices list len=4
+            $.gateways[0].devices[0].devices[0] object keys=['disconnected_date', 'id', 'interval', 'serial', 'subtype', 'title']
+              $.gateways[0].devices[0].devices[0].type object keys=['capability', 'id', 'name', 'precision']
+                $.gateways[0].devices[0].devices[0].type.unit object keys=['id', 'name']
+              $.gateways[0].devices[0].devices[0].devices list len=0

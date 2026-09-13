@@ -1,0 +1,44 @@
+{
+  "_meta": {
+    "cache_control": "max-age=900, private",
+    "content_type": "application/json",
+    "date": "Sun, 13 Sep 2026 17:05:17 GMT",
+    "url": "https://api.sensorist.com/v1/users"
+  },
+  "body": {
+    "code": 200,
+    "max_age": 900,
+    "time": 0.086,
+    "user": {
+      "accounts": [
+        {
+          "account": {
+            "id": 14861,
+            "provider": {
+              "id": 1,
+              "image_phone": null,
+              "name": "Sensorist"
+            }
+          },
+          "role": "admin"
+        }
+      ],
+      "country": {
+        "code": "DK"
+      },
+      "email": "redacted@example.com",
+      "fname": "Test",
+      "id": 14886,
+      "lname": "User",
+      "notification_channel": 15,
+      "notification_type": 3,
+      "temp_unit": {
+        "id": 1,
+        "name": "\u00b0C"
+      },
+      "tz": {
+        "tz": "Europe/Copenhagen"
+      }
+    }
+  }
+}

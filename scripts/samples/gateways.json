@@ -1,0 +1,211 @@
+{
+  "_meta": {
+    "cache_control": "max-age=900, private",
+    "content_type": "application/json",
+    "date": "Sun, 13 Sep 2026 17:05:18 GMT",
+    "url": "https://api.sensorist.com/v1/gateways"
+  },
+  "body": {
+    "code": 200,
+    "gateways": [
+      {
+        "devices": [
+          {
+            "current_gateway_id": 7325,
+            "devices": [
+              {
+                "devices": [],
+                "disconnected_date": null,
+                "id": 220200,
+                "interval": 900,
+                "serial": "t5p0xxxx",
+                "subtype": "digital",
+                "title": "Temperature",
+                "type": {
+                  "capability": 72,
+                  "id": 5,
+                  "name": "temp",
+                  "precision": 1,
+                  "unit": {
+                    "id": 1,
+                    "name": "\u00b0C"
+                  }
+                }
+              },
+              {
+                "devices": [],
+                "disconnected_date": null,
+                "id": 220201,
+                "interval": 900,
+                "serial": "t4p0xxxx",
+                "subtype": "digital",
+                "title": "Humidity",
+                "type": {
+                  "capability": 80,
+                  "id": 4,
+                  "name": "humi",
+                  "precision": 0,
+                  "unit": {
+                    "id": 2,
+                    "name": "%"
+                  }
+                }
+              },
+              {
+                "devices": [],
+                "disconnected_date": null,
+                "id": 220199,
+                "interval": 10800,
+                "serial": "t1p0xxxx",
+                "subtype": null,
+                "title": "Battery",
+                "type": {
+                  "capability": 4,
+                  "id": 1,
+                  "name": "batt",
+                  "precision": 2,
+                  "unit": {
+                    "id": 3,
+                    "name": "v"
+                  }
+                }
+              },
+              {
+                "devices": [],
+                "disconnected_date": null,
+                "id": 220198,
+                "interval": 1800,
+                "serial": "t7p0xxxx",
+                "subtype": null,
+                "title": "Wireless",
+                "type": {
+                  "capability": 4,
+                  "id": 7,
+                  "name": "wireless",
+                  "precision": 0,
+                  "unit": {
+                    "id": 6,
+                    "name": "%"
+                  }
+                }
+              }
+            ],
+            "disconnected_date": null,
+            "firmware": "1.99",
+            "id": 57951,
+            "serial": "aa00bb01",
+            "title": "Sensor 2 Rumm\u00e5ling",
+            "type": {
+              "id": 4,
+              "name": "S2.0"
+            }
+          },
+          {
+            "current_gateway_id": 7325,
+            "devices": [
+              {
+                "devices": [],
+                "disconnected_date": null,
+                "id": 220196,
+                "interval": 900,
+                "serial": "t5p0xxxx",
+                "subtype": "digital",
+                "title": "Temperature",
+                "type": {
+                  "capability": 72,
+                  "id": 5,
+                  "name": "temp",
+                  "precision": 1,
+                  "unit": {
+                    "id": 1,
+                    "name": "\u00b0C"
+                  }
+                }
+              },
+              {
+                "devices": [],
+                "disconnected_date": null,
+                "id": 220197,
+                "interval": 900,
+                "serial": "t4p0xxxx",
+                "subtype": "digital",
+                "title": "Humidity",
+                "type": {
+                  "capability": 80,
+                  "id": 4,
+                  "name": "humi",
+                  "precision": 0,
+                  "unit": {
+                    "id": 2,
+                    "name": "%"
+                  }
+                }
+              },
+              {
+                "devices": [],
+                "disconnected_date": null,
+                "id": 220195,
+                "interval": 10800,
+                "serial": "t1p0xxxx",
+                "subtype": null,
+                "title": "Battery",
+                "type": {
+                  "capability": 4,
+                  "id": 1,
+                  "name": "batt",
+                  "precision": 2,
+                  "unit": {
+                    "id": 3,
+                    "name": "v"
+                  }
+                }
+              },
+              {
+                "devices": [],
+                "disconnected_date": null,
+                "id": 220194,
+                "interval": 1800,
+                "serial": "t7p0xxxx",
+                "subtype": null,
+                "title": "Wireless",
+                "type": {
+                  "capability": 4,
+                  "id": 7,
+                  "name": "wireless",
+                  "precision": 0,
+                  "unit": {
+                    "id": 6,
+                    "name": "%"
+                  }
+                }
+              }
+            ],
+            "disconnected_date": null,
+            "firmware": "1.99",
+            "id": 57950,
+            "serial": "aa00bb02",
+            "title": "Sensor 1 Flaskem\u00e5ling",
+            "type": {
+              "id": 4,
+              "name": "S2.0"
+            }
+          }
+        ],
+        "disconnected_date": null,
+        "firmware": "2.43",
+        "id": 7325,
+        "ipv4": "203.0.113.10",
+        "local_ipv4": "192.168.1.10",
+        "master_id": null,
+        "serial": "10000000",
+        "title": "Gateway",
+        "type": {
+          "id": 10,
+          "name": "B16"
+        }
+      }
+    ],
+    "max_age": 900,
+    "time": 0.094
+  }
+}

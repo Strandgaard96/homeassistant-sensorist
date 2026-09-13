@@ -1,0 +1,79 @@
+{
+  "_meta": {
+    "cache_control": "max-age=900, private",
+    "content_type": "application/json",
+    "date": "Sun, 13 Sep 2026 17:05:19 GMT",
+    "url": "https://api.sensorist.com/v1/measurements?data_sources=220200%2C220201%2C220199%2C220198%2C220196%2C220197%2C220195%2C220194&type=latest"
+  },
+  "body": {
+    "code": 200,
+    "max_age": 900,
+    "measurements": {
+      "220194": {
+        "date": "2026-09-13T16:50:34+0000",
+        "max": null,
+        "min": null,
+        "seq": 1789318235827900,
+        "type": 1,
+        "value": 24
+      },
+      "220195": {
+        "date": "2026-09-13T16:20:27+0000",
+        "max": null,
+        "min": null,
+        "seq": 1789316428591631,
+        "type": 1,
+        "value": 2.79
+      },
+      "220196": {
+        "date": "2026-09-13T16:50:34+0000",
+        "max": null,
+        "min": null,
+        "seq": 1789318235813652,
+        "type": 1,
+        "value": 17.47
+      },
+      "220197": {
+        "date": "2026-09-13T16:50:34+0000",
+        "max": null,
+        "min": null,
+        "seq": 1789318235798657,
+        "type": 1,
+        "value": 83.77
+      },
+      "220198": {
+        "date": "2026-09-13T16:44:04+0000",
+        "max": null,
+        "min": null,
+        "seq": 1789317846235791,
+        "type": 1,
+        "value": 100
+      },
+      "220199": {
+        "date": "2026-09-13T14:14:08+0000",
+        "max": null,
+        "min": null,
+        "seq": 1789308848613185,
+        "type": 1,
+        "value": 2.83
+      },
+      "220200": {
+        "date": "2026-09-13T16:59:04+0000",
+        "max": null,
+        "min": null,
+        "seq": 1789318746316133,
+        "type": 1,
+        "value": 20.34
+      },
+      "220201": {
+        "date": "2026-09-13T16:59:04+0000",
+        "max": null,
+        "min": null,
+        "seq": 1789318746309155,
+        "type": 1,
+        "value": 70.8
+      }
+    },
+    "time": 0.109
+  }
+}
