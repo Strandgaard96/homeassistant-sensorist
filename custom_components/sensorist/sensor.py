@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import timedelta
 
 from homeassistant.components.sensor import (
@@ -83,6 +84,40 @@ SENSOR_DESCRIPTIONS: dict[int, SensorEntityDescription] = {
 }
 
 
+# The API reports the unit for every data source, and an account may be set to
+# a different one than the account these descriptions were derived from (users
+# carries a temp_unit preference). Unit, device class and precision are
+# therefore resolved from the API rather than baked in.
+UNIT_BY_API_NAME: dict[str, str] = {
+    "°c": UnitOfTemperature.CELSIUS,
+    "°f": UnitOfTemperature.FAHRENHEIT,
+    "c": UnitOfTemperature.CELSIUS,
+    "f": UnitOfTemperature.FAHRENHEIT,
+    "%": PERCENTAGE,
+    "v": UnitOfElectricPotential.VOLT,
+    "mv": UnitOfElectricPotential.MILLIVOLT,
+}
+
+TEMPERATURE_UNITS = frozenset({UnitOfTemperature.CELSIUS, UnitOfTemperature.FAHRENHEIT})
+VOLTAGE_UNITS = frozenset({UnitOfElectricPotential.VOLT, UnitOfElectricPotential.MILLIVOLT})
+
+
+def _device_class_for(kind_id: int | None, unit: str) -> SensorDeviceClass | None:
+    """Return the device class that matches the unit the API actually reports."""
+    if unit in TEMPERATURE_UNITS:
+        return SensorDeviceClass.TEMPERATURE
+    if unit in VOLTAGE_UNITS:
+        return SensorDeviceClass.VOLTAGE
+    if unit == PERCENTAGE:
+        if kind_id == KIND_BATTERY:
+            # A sensor model that reports a real percentage can use the battery
+            # device class, unlike the volt-reporting hardware seen so far.
+            return SensorDeviceClass.BATTERY
+        if kind_id == KIND_HUMIDITY:
+            return SensorDeviceClass.HUMIDITY
+    return None
+
+
 def _fallback_description(data_source: SensoristDataSource) -> SensorEntityDescription:
     """Describe a data source kind that discovery never saw.
 
@@ -95,6 +130,50 @@ def _fallback_description(data_source: SensoristDataSource) -> SensorEntityDescr
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=data_source.unit,
         suggested_display_precision=data_source.precision,
+    )
+
+
+def describe(data_source: SensoristDataSource) -> SensorEntityDescription:
+    """Return the entity description for a data source.
+
+    The mapped description is a template: whatever unit and precision the API
+    reports win, so an account configured in Fahrenheit, or hardware reporting
+    battery as a percentage, is described correctly rather than relabelled.
+    """
+    description = SENSOR_DESCRIPTIONS.get(data_source.kind_id or -1)
+    if description is None:
+        return _fallback_description(data_source)
+
+    unit = description.native_unit_of_measurement
+    device_class = description.device_class
+    precision = description.suggested_display_precision
+
+    if data_source.precision is not None:
+        precision = data_source.precision
+
+    if data_source.unit:
+        mapped = UNIT_BY_API_NAME.get(data_source.unit.lower())
+        if mapped is None:
+            # An unrecognised unit cannot be validated against a device class,
+            # so pass the API's string through undescribed.
+            unit = data_source.unit
+            device_class = None
+        elif mapped != unit:
+            unit = mapped
+            device_class = _device_class_for(data_source.kind_id, mapped)
+
+    if (
+        unit == description.native_unit_of_measurement
+        and device_class == description.device_class
+        and precision == description.suggested_display_precision
+    ):
+        return description
+
+    return replace(
+        description,
+        native_unit_of_measurement=unit,
+        device_class=device_class,
+        suggested_display_precision=precision,
     )
 
 
@@ -122,9 +201,8 @@ class SensoristSensorEntity(SensoristEntity, SensorEntity):
         """Initialise the entity for one data source."""
         super().__init__(coordinator)
         self._data_source_id = data_source.id
-        description = SENSOR_DESCRIPTIONS.get(data_source.kind_id or -1)
-        if description is None:
-            description = _fallback_description(data_source)
+        description = describe(data_source)
+        if description.translation_key is None:
             # No translation exists for an unknown kind, so fall back to the
             # label the API gave the data source.
             self._attr_name = data_source.title

@@ -37,6 +37,12 @@ One Home Assistant device per Sensorist **sensor**, linked to a device for the
 Data source kinds beyond these still produce an entity, using the unit and
 precision the API reports, with no device class.
 
+Nothing is tied to a particular account. Every gateway the API returns is
+polled, slaves included, and the unit, precision and device class of each
+entity come from the API rather than from a fixed table — so an account set to
+Fahrenheit is reported in Fahrenheit, and hardware that reports battery as a
+real percentage gets the `battery` device class instead of `voltage`.
+
 ### Why battery is in volts
 
 The API reports battery as a voltage (for example 2.83 V), not a percentage.
