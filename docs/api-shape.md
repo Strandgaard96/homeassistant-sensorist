@@ -6,6 +6,12 @@ fixtures in `tests/fixtures/`.
 
 Account used for discovery: 1 gateway (B16), 2 sensors (S2.0), 4 data sources each.
 
+> **Redacted.** The committed samples and fixtures carry placeholder values for
+> anything that identifies the account: the email, the account holder's name,
+> gateway and sensor serial numbers, and the gateway's public and local IP
+> addresses. Structure, field names, units, intervals and measurement values are
+> untouched, which is all the integration is built against.
+
 ## Response envelope
 
 Every endpoint wraps its payload in the same object:
