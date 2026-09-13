@@ -66,11 +66,16 @@ known-first-party = ["custom_components"]
 [tool.mypy]
 python_version = "3.13"
 strict = true
+# custom_components has no __init__.py, so tell mypy the repo root is the base
+# for package names rather than letting it infer two names for one file.
+mypy_path = "."
+explicit_package_bases = true
+namespace_packages = true
 warn_unreachable = true
 disallow_any_generics = true
 
 [[tool.mypy.overrides]]
-module = ["aioresponses.*"]
+module = ["aioresponses.*", "pytest_homeassistant_custom_component.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

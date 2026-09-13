@@ -66,10 +66,14 @@ layers:
 - The coordinator's poll interval is never shorter than the largest `max-age`
   seen for the measurement endpoint.
 
-In practice that means one poll every 15 minutes, which matches how often the
-sensors themselves report. The interval is deliberately not configurable — a
-shorter one would either violate the API's caching contract or return identical
-data.
+A poll is one `/measurements` request per gateway, sent concurrently. The
+gateway inventory is refetched at most once an hour, not on every poll, since it
+only changes when hardware is added or renamed.
+
+In practice that means one request every 15 minutes for a single-gateway
+account, which matches how often the sensors themselves report. The interval is
+deliberately not configurable — a shorter one would either violate the API's
+caching contract or return identical data.
 
 ## Not included
 

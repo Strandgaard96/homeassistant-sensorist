@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -31,6 +33,20 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@contextmanager
+def _mapped_errors() -> Iterator[None]:
+    """Translate client exceptions into the ones Home Assistant expects."""
+    try:
+        yield
+    except SensoristAuthError as err:
+        raise ConfigEntryAuthFailed(str(err)) from err
+    except SensoristConnectionError as err:
+        raise UpdateFailed(str(err)) from err
+    except SensoristError as err:
+        raise UpdateFailed(f"unexpected API response: {err}") from err
+
 
 type SensoristConfigEntry = ConfigEntry[SensoristDataUpdateCoordinator]
 
@@ -124,24 +140,27 @@ class SensoristDataUpdateCoordinator(DataUpdateCoordinator[SensoristData]):
         self._data_sources: dict[int, SensoristDataSource] = {}
         self._inventory_age: datetime | None = None
 
+    async def _async_setup(self) -> None:
+        """Fetch the inventory once, before the first data refresh.
+
+        Keeping this out of _async_update_data means the hourly inventory
+        refresh is the only thing that ever refetches it.
+        """
+        with _mapped_errors():
+            await self._async_refresh_inventory()
+
     async def _async_update_data(self) -> SensoristData:
-        """Fetch the inventory (when due) and the latest measurements."""
-        try:
+        """Refresh the inventory if it is due, then fetch the latest values.
+
+        A steady-state poll is one /measurements request per gateway. The
+        inventory is only refetched hourly, and never in response to the
+        measurements themselves: the request only ever names data sources we
+        already know about, so an unknown id cannot come back in the reply.
+        Genuinely new hardware is picked up by the hourly refresh.
+        """
+        with _mapped_errors():
             await self._async_refresh_inventory()
             measurements = await self._async_fetch_measurements()
-
-            # A measurement for an id we have never seen means hardware was
-            # added since the last inventory fetch; pull it again immediately.
-            if any(ds_id not in self._data_sources for ds_id in measurements):
-                _LOGGER.debug("Unknown data source in measurements, refreshing inventory")
-                await self._async_refresh_inventory(force=True)
-                measurements = await self._async_fetch_measurements()
-        except SensoristAuthError as err:
-            raise ConfigEntryAuthFailed(str(err)) from err
-        except SensoristConnectionError as err:
-            raise UpdateFailed(str(err)) from err
-        except SensoristError as err:
-            raise UpdateFailed(f"unexpected API response: {err}") from err
 
         self._adjust_update_interval()
 
@@ -162,8 +181,9 @@ class SensoristDataUpdateCoordinator(DataUpdateCoordinator[SensoristData]):
             return
 
         if force:
-            # Bypass the client's max-age cache; the inventory genuinely changed.
-            self.api.invalidate()
+            # Bypass the client's max-age cache for the inventory only, so a
+            # cached measurement is not thrown away along with it.
+            self.api.invalidate("/gateways")
 
         raw_gateways = await self.api.async_get_gateways(with_slaves=True)
 

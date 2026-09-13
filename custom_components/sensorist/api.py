@@ -72,13 +72,17 @@ class SensoristApi:
         """Return the largest max-age seen for a path, defaulting conservatively."""
         return self._max_age_by_path.get(path, DEFAULT_MAX_AGE)
 
-    def invalidate(self) -> None:
-        """Drop every cached response.
+    def invalidate(self, path: str | None = None) -> None:
+        """Drop cached responses, for one path or all of them.
 
-        Used when the inventory must be refetched ahead of its max-age, for
-        instance after a measurement referenced an unknown data source.
+        Scoped by default so that refetching the inventory early cannot also
+        discard a perfectly valid cached measurement and cost an extra request.
         """
-        self._cache.clear()
+        if path is None:
+            self._cache.clear()
+            return
+        for key in [key for key in self._cache if key[0] == path]:
+            del self._cache[key]
 
     async def async_get_user(self) -> dict[str, Any]:
         """Return the authenticated user object."""
