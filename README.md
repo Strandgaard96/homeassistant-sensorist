@@ -11,7 +11,7 @@ cloud-polling integration.
 ### HACS (custom repository)
 
 1. HACS → **Integrations** → ⋮ → **Custom repositories**
-2. Add `https://github.com/magst/homeassistant-sensorist`, category **Integration**
+2. Add `https://github.com/Strandgaard96/homeassistant-sensorist`, category **Integration**
 3. Install **Sensorist**, then restart Home Assistant
 4. **Settings → Devices & Services → Add Integration → Sensorist**
 5. Sign in with the email and password you use for the Sensorist app
