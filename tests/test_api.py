@@ -21,6 +21,7 @@ from custom_components.sensorist.api import (
 from .conftest import (
     CACHE_HEADERS,
     GATEWAY_ID,
+    URL_GATEWAYS,
     URL_MEASUREMENTS,
     URL_USERS,
     load_fixture_body,
@@ -181,3 +182,90 @@ async def test_empty_data_source_list_skips_request(
 
     assert await api.async_get_latest(GATEWAY_ID, []) == {}
     assert request_count(mock_api, URL_MEASUREMENTS) == 0
+
+
+async def test_non_json_body_is_api_error(hass: HomeAssistant, mock_api: aioresponses) -> None:
+    """A 200 that is not JSON raises SensoristApiError."""
+    mock_api.get(
+        URL_USERS,
+        status=200,
+        body="<html>maintenance</html>",
+        content_type="text/html",
+        headers=CACHE_HEADERS,
+    )
+    api = build_api(hass)
+
+    with pytest.raises(SensoristApiError):
+        await api.async_get_user()
+
+
+async def test_non_object_body_is_api_error(hass: HomeAssistant, mock_api: aioresponses) -> None:
+    """A JSON body that is not an object raises SensoristApiError."""
+    mock_api.get(URL_USERS, status=200, payload=[1, 2, 3], headers=CACHE_HEADERS)
+    api = build_api(hass)
+
+    with pytest.raises(SensoristApiError):
+        await api.async_get_user()
+
+
+async def test_application_error_code_is_api_error(
+    hass: HomeAssistant, mock_api: aioresponses
+) -> None:
+    """An HTTP 200 carrying a non-200 application code is an error."""
+    mock_api.get(URL_USERS, status=200, payload={"code": 500}, headers=CACHE_HEADERS)
+    api = build_api(hass)
+
+    with pytest.raises(SensoristApiError):
+        await api.async_get_user()
+
+
+async def test_missing_gateways_array_is_api_error(
+    hass: HomeAssistant, mock_api: aioresponses
+) -> None:
+    """A /gateways response without a gateways array is an error."""
+    mock_api.get(URL_GATEWAYS, status=200, payload={"code": 200}, headers=CACHE_HEADERS)
+    api = build_api(hass)
+
+    with pytest.raises(SensoristApiError):
+        await api.async_get_gateways()
+
+
+async def test_missing_measurements_object_is_api_error(
+    hass: HomeAssistant, mock_api: aioresponses
+) -> None:
+    """A /measurements response without a measurements object is an error."""
+    mock_api.get(URL_MEASUREMENTS, status=200, payload={"code": 200}, headers=CACHE_HEADERS)
+    api = build_api(hass)
+
+    with pytest.raises(SensoristApiError):
+        await api.async_get_latest(GATEWAY_ID, [1])
+
+
+async def test_unparseable_cache_control_falls_back_to_body(
+    hass: HomeAssistant, mock_api: aioresponses
+) -> None:
+    """A cache-control header without max-age defers to the body's max_age."""
+    mock_api.get(
+        URL_USERS,
+        status=200,
+        payload=load_fixture_body("users"),
+        headers={"cache-control": "no-store"},
+    )
+    api = build_api(hass)
+
+    await api.async_get_user()
+
+    assert api.max_age_for("/users") == 900
+
+
+async def test_invalidate_all_forces_refetch(hass: HomeAssistant, mock_api: aioresponses) -> None:
+    """Invalidating with no path drops every cached response."""
+    body = load_fixture_body("users")
+    mock_api.get(URL_USERS, status=200, payload=body, headers=CACHE_HEADERS, repeat=True)
+    api = build_api(hass)
+
+    await api.async_get_user()
+    api.invalidate()
+    await api.async_get_user()
+
+    assert request_count(mock_api, URL_USERS) == 2

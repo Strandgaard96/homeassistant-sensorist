@@ -204,7 +204,5 @@ class SensoristApi:
         match = _MAX_AGE_RE.search(header)
         if match is None:
             return None
-        try:
-            return int(match.group(1))
-        except ValueError:
-            return None
+        # The pattern only matches digits, so int() cannot fail.
+        return int(match.group(1))

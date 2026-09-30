@@ -56,3 +56,25 @@ async def test_diagnostics_includes_coordinator_data(
     assert len(diagnostics["gateways"]) == 1
     assert len(diagnostics["data_sources"]) == 8
     assert len(diagnostics["measurements"]) == 8
+
+
+async def test_diagnostics_redacts_identifiers(
+    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+) -> None:
+    """Hardware serials and the account id never appear in a diagnostics dump."""
+    mock_full_account(mock_api)
+    await setup_integration(hass, config_entry)
+
+    data = config_entry.runtime_data.data
+    serials = {gateway.serial for gateway in data.gateways.values()} | {
+        source.sensor.serial for source in data.data_sources.values()
+    }
+    serials.discard(None)
+    assert serials
+
+    diagnostics = await async_get_config_entry_diagnostics(hass, config_entry)
+    serialised = json.dumps(diagnostics, default=str)
+
+    for serial in serials:
+        assert serial not in serialised
+    assert diagnostics["entry"]["unique_id"] == "**REDACTED**"
