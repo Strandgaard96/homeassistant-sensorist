@@ -59,8 +59,10 @@ async def test_user_flow_invalid_auth_then_recovers(
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
-async def test_user_flow_cannot_connect(hass: HomeAssistant, mock_api: aioresponses) -> None:
-    """A network failure shows cannot_connect."""
+async def test_user_flow_cannot_connect_then_recovers(
+    hass: HomeAssistant, mock_api: aioresponses
+) -> None:
+    """A network failure shows cannot_connect, and a retry succeeds."""
     mock_api.get(URL_USERS, exception=aiohttp.ClientError("boom"))
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
@@ -69,9 +71,17 @@ async def test_user_flow_cannot_connect(hass: HomeAssistant, mock_api: aiorespon
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "cannot_connect"}
 
+    mock_full_account(mock_api)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], CREDENTIALS)
+    await hass.async_block_till_done()
 
-async def test_user_flow_unknown_error(hass: HomeAssistant, mock_api: aioresponses) -> None:
-    """An unusable response shows the generic error rather than crashing."""
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+async def test_user_flow_unknown_error_then_recovers(
+    hass: HomeAssistant, mock_api: aioresponses
+) -> None:
+    """An unusable response shows the generic error, and a retry succeeds."""
     mock_api.get(URL_USERS, status=200, payload={"code": 200}, headers=CACHE_HEADERS)
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
@@ -79,6 +89,12 @@ async def test_user_flow_unknown_error(hass: HomeAssistant, mock_api: aiorespons
 
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "unknown"}
+
+    mock_full_account(mock_api)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], CREDENTIALS)
+    await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
 async def test_already_configured(
@@ -119,10 +135,10 @@ async def test_reauth_updates_password(
     assert config_entry.data[CONF_EMAIL] == "redacted@example.com"
 
 
-async def test_reauth_invalid_auth(
+async def test_reauth_invalid_auth_then_recovers(
     hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
 ) -> None:
-    """A still-wrong password keeps the reauth form open."""
+    """A still-wrong password keeps the reauth form open for another try."""
     config_entry.add_to_hass(hass)
     mock_api.get(URL_USERS, status=403)
 
@@ -133,6 +149,16 @@ async def test_reauth_invalid_auth(
 
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_auth"}
+
+    mock_full_account(mock_api)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_PASSWORD: "new-password"}
+    )
+    await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert config_entry.data[CONF_PASSWORD] == "new-password"
 
 
 async def test_reauth_rejects_different_account(
