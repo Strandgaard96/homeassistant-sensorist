@@ -7,6 +7,10 @@
         "data": {
           "email": "Email",
           "password": "Password"
+        },
+        "data_description": {
+          "email": "The email address you sign in to the Sensorist app with.",
+          "password": "The password for that Sensorist account."
         }
       },
       "reauth_confirm": {
@@ -14,6 +18,9 @@
         "description": "The password for {email} was rejected. Enter the current password.",
         "data": {
           "password": "Password"
+        },
+        "data_description": {
+          "password": "The current password for your Sensorist account."
         }
       }
     },

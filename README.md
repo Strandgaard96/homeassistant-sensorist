@@ -21,6 +21,26 @@ cloud-polling integration.
 Copy `custom_components/sensorist` into your Home Assistant `config/custom_components/`
 directory and restart.
 
+### Configuration parameters
+
+| Field | Description |
+|---|---|
+| Email | The email address you sign in to the Sensorist app with. |
+| Password | The password for that account. If it changes, Home Assistant asks you to re-authenticate and only the password is requested. |
+
+One entry covers the whole account: every gateway and sensor on it is added.
+The same account cannot be added twice.
+
+## Removal
+
+1. **Settings → Devices & Services → Sensorist** → ⋮ → **Delete**. This removes
+   the entry and all its devices and entities.
+2. If installed through HACS: HACS → **Integrations** → **Sensorist** → ⋮ →
+   **Remove**, then restart Home Assistant. For a manual install, delete
+   `config/custom_components/sensorist` and restart.
+
+Nothing is stored on the Sensorist side, so there is nothing to clean up there.
+
 ## What you get
 
 One Home Assistant device per Sensorist **sensor**, linked to a device for the
