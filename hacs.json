@@ -1,6 +1,6 @@
 {
   "name": "Sensorist",
   "render_readme": true,
-  "homeassistant": "2024.12.0",
+  "homeassistant": "2025.2.0",
   "content_in_root": false
 }
