@@ -1,128 +1,17 @@
 # Sensorist for Home Assistant
 
-Custom integration exposing [Sensorist](https://sensorist.com) environment sensors
-in Home Assistant, via the Sensorist cloud REST API.
+Home Assistant integration for [Sensorist](https://sensorist.com) temperature and
+humidity sensors, via the Sensorist cloud.
 
-## Install
+## Installation
 
-Sensorist has no local API — the gateway talks only to the cloud — so this is a
-cloud-polling integration.
-
-### HACS (custom repository)
-
-1. HACS → **Integrations** → ⋮ → **Custom repositories**
-2. Add `https://github.com/Strandgaard96/homeassistant-sensorist`, category **Integration**
-3. Install **Sensorist**, then restart Home Assistant
-4. **Settings → Devices & Services → Add Integration → Sensorist**
-5. Sign in with the email and password you use for the Sensorist app
-
-### Manual
-
-Copy `custom_components/sensorist` into your Home Assistant `config/custom_components/`
-directory and restart.
-
-### Configuration parameters
-
-| Field | Description |
-|---|---|
-| Email | The email address you sign in to the Sensorist app with. |
-| Password | The password for that account. If it changes, Home Assistant asks you to re-authenticate and only the password is requested. |
-
-One entry covers the whole account: every gateway and sensor on it is added.
-The same account cannot be added twice.
+1. In HACS, add `https://github.com/Strandgaard96/homeassistant-sensorist` as a
+   custom repository (category **Integration**), install **Sensorist**, and
+   restart Home Assistant.
+2. Go to **Settings → Devices & Services → Add Integration → Sensorist** and sign
+   in with your Sensorist app email and password.
 
 ## Removal
 
-1. **Settings → Devices & Services → Sensorist** → ⋮ → **Delete**. This removes
-   the entry and all its devices and entities.
-2. If installed through HACS: HACS → **Integrations** → **Sensorist** → ⋮ →
-   **Remove**, then restart Home Assistant. For a manual install, delete
-   `config/custom_components/sensorist` and restart.
-
-Nothing is stored on the Sensorist side, so there is nothing to clean up there.
-
-## What you get
-
-One Home Assistant device per Sensorist **sensor**, linked to a device for the
-**gateway** it reports through.
-
-| Entity | Device class | Unit | Notes |
-|---|---|---|---|
-| Temperature | `temperature` | °C | |
-| Humidity | `humidity` | % | |
-| Battery voltage | `voltage` | V | diagnostic |
-| Wireless quality | — | % | diagnostic |
-| Connectivity (per gateway) | `connectivity` | — | diagnostic |
-
-Data source kinds beyond these still produce an entity, using the unit and
-precision the API reports, with no device class.
-
-Nothing is tied to a particular account. Every gateway the API returns is
-polled, slaves included, and the unit, precision and device class of each
-entity come from the API rather than from a fixed table — so an account set to
-Fahrenheit is reported in Fahrenheit, and hardware that reports battery as a
-real percentage gets the `battery` device class instead of `voltage`.
-
-### Why battery is in volts
-
-The API reports battery as a voltage (for example 2.83 V), not a percentage.
-Home Assistant's `battery` device class accepts only percentages, and converting
-volts to a percentage would need the cell chemistry and empty/full thresholds,
-which the API does not expose. Reporting the raw voltage avoids inventing a
-number. Set your own threshold in a template binary sensor if you want a
-low-battery alert.
-
-### Availability
-
-An entity goes unavailable when its most recent measurement is older than three
-of its own reporting intervals. Data sources report at different rates —
-temperature every 900 s, battery every 10800 s — so each entity uses its own
-interval rather than a single global timeout. A stale sensor disappears rather
-than showing a value that is hours out of date.
-
-## Polling and rate limits
-
-Every Sensorist API response carries a `cache-control: max-age` header, and the
-API documentation requires clients to honour it. This integration does, in two
-layers:
-
-- The API client caches each response until its `max-age` expires. A repeat call
-  inside that window is served from memory, with no network request, no matter
-  which part of the integration asks.
-- The coordinator's poll interval is never shorter than the largest `max-age`
-  seen for the measurement endpoint.
-
-A poll is one `/measurements` request per gateway, sent concurrently. The
-gateway inventory is refetched at most once an hour, not on every poll, since it
-only changes when hardware is added or renamed.
-
-In practice that means one request every 15 minutes for a single-gateway
-account, which matches how often the sensors themselves report. The interval is
-deliberately not configurable — a shorter one would either violate the API's
-caching contract or return identical data.
-
-## Not included
-
-Historical import into HA long-term statistics, webhook callbacks for button
-presses and alarms, gateway reboot, and alarm entities are all out of scope for
-now.
-
-## Note for upstreaming
-
-The API client lives at `custom_components/sensorist/api.py` rather than in a
-separate PyPI package. Home Assistant core requires integrations to depend on an
-external library, so moving this into core would mean splitting `api.py` out
-into its own package and listing it in `manifest.json` under `requirements`.
-
-## Development
-
-```bash
-uv sync
-uv run pytest
-uv run ruff check .
-uv run mypy custom_components/sensorist
-```
-
-`scripts/discover.py` is the throwaway probe used to derive the API shape
-recorded in `docs/api-shape.md`. It reads `SENSORIST_EMAIL` and
-`SENSORIST_PASSWORD` from the environment and never stores credentials.
+Delete the integration under **Settings → Devices & Services**, remove it in
+HACS, and restart Home Assistant.
