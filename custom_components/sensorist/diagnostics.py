@@ -5,13 +5,15 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
-from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
 from .coordinator import SensoristConfigEntry
 
 TO_REDACT = {CONF_PASSWORD, CONF_EMAIL}
+# Serials identify physical hardware.
+TO_REDACT_IDENTIFIERS = {"serial"}
 
 
 async def async_get_config_entry_diagnostics(
@@ -24,7 +26,8 @@ async def async_get_config_entry_diagnostics(
     return {
         "entry": {
             "data": async_redact_data(dict(entry.data), TO_REDACT),
-            "unique_id": entry.unique_id,
+            # The unique id is the Sensorist account id.
+            "unique_id": REDACTED if entry.unique_id else None,
         },
         "coordinator": {
             "last_update_success": coordinator.last_update_success,
@@ -34,8 +37,15 @@ async def async_get_config_entry_diagnostics(
         },
         # Gateway objects never carry ipv4/local_ipv4 past the coordinator, so
         # no network addresses can reach diagnostics.
-        "gateways": [asdict(gateway) for gateway in data.gateways.values()],
-        "data_sources": [asdict(source) for source in data.data_sources.values()],
+        "gateways": [
+            async_redact_data(asdict(gateway), TO_REDACT_IDENTIFIERS)
+            for gateway in data.gateways.values()
+        ],
+        # Each data source nests its sensor and gateway, serials included.
+        "data_sources": [
+            async_redact_data(asdict(source), TO_REDACT_IDENTIFIERS)
+            for source in data.data_sources.values()
+        ],
         "measurements": {
             str(source_id): asdict(measurement)
             for source_id, measurement in data.measurements.items()
