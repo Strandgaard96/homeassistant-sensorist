@@ -14,7 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: uv sync
+        with:
+          python-version: "3.13"
+      - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run mypy custom_components/sensorist
       - run: uv run pytest
