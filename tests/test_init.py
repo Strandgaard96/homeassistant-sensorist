@@ -5,11 +5,11 @@ from __future__ import annotations
 import copy
 from datetime import timedelta
 
-from aioresponses import aioresponses
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.sensorist.const import DOMAIN
 from custom_components.sensorist.coordinator import SensoristDataUpdateCoordinator
@@ -25,13 +25,14 @@ from .conftest import (
     URL_USERS,
     load_fixture_body,
     mock_full_account,
+    mock_get,
     request_count,
     setup_integration,
 )
 
 
 async def test_setup_and_unload(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """The entry sets up and tears down cleanly."""
     mock_full_account(mock_api)
@@ -46,7 +47,7 @@ async def test_setup_and_unload(
 
 
 async def test_coordinator_maps_fixtures(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """The recursive devices tree becomes typed gateways, sensors and sources."""
     mock_full_account(mock_api)
@@ -85,7 +86,7 @@ async def test_coordinator_maps_fixtures(
 
 async def test_steady_state_poll_is_one_request_per_gateway(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -113,7 +114,7 @@ async def test_steady_state_poll_is_one_request_per_gateway(
 
 async def test_inventory_refetched_after_an_hour(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -131,7 +132,7 @@ async def test_inventory_refetched_after_an_hour(
 
 
 async def test_update_interval_follows_max_age(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """The poll interval never drops below the API's advertised max-age."""
     mock_full_account(mock_api)
@@ -142,16 +143,16 @@ async def test_update_interval_follows_max_age(
 
 
 async def test_update_interval_raised_by_longer_max_age(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A longer max-age slows polling down rather than being ignored."""
-    mock_full_account(mock_api, repeat=True)
-    mock_api.get(
+    mock_full_account(mock_api)
+    mock_get(
+        mock_api,
         URL_MEASUREMENTS,
         status=200,
-        payload=load_fixture_body("measurements_latest"),
+        json=load_fixture_body("measurements_latest"),
         headers={"cache-control": "max-age=3600, private"},
-        repeat=True,
     )
     await setup_integration(hass, config_entry)
 
@@ -162,17 +163,17 @@ async def test_update_interval_raised_by_longer_max_age(
 
 async def test_auth_failure_during_update_triggers_reauth(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
     """A rejected credential mid-run starts a reauth flow instead of failing quietly."""
     freezer.move_to(CAPTURED_AT)
-    mock_full_account(mock_api, repeat=False)
+    mock_full_account(mock_api)
     await setup_integration(hass, config_entry)
 
     coordinator: SensoristDataUpdateCoordinator = config_entry.runtime_data
-    mock_api.get(URL_MEASUREMENTS, status=401, repeat=True)
+    mock_get(mock_api, URL_MEASUREMENTS, status=401)
     freezer.tick(timedelta(seconds=901))
     await coordinator.async_refresh()
     await hass.async_block_till_done()
@@ -187,17 +188,17 @@ async def test_auth_failure_during_update_triggers_reauth(
 
 async def test_connection_failure_during_update_is_not_fatal(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
     """A transient outage marks the update failed but leaves the entry loaded."""
     freezer.move_to(CAPTURED_AT)
-    mock_full_account(mock_api, repeat=False)
+    mock_full_account(mock_api)
     await setup_integration(hass, config_entry)
 
     coordinator: SensoristDataUpdateCoordinator = config_entry.runtime_data
-    mock_api.get(URL_MEASUREMENTS, status=503, repeat=True)
+    mock_get(mock_api, URL_MEASUREMENTS, status=503)
     freezer.tick(timedelta(seconds=901))
     await coordinator.async_refresh()
     await hass.async_block_till_done()
@@ -208,13 +209,13 @@ async def test_connection_failure_during_update_is_not_fatal(
 
 async def test_blank_and_interpolated_rows_keep_previous_value(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
     """Measurement types 20 and 30 are placeholders, not readings."""
     freezer.move_to(CAPTURED_AT)
-    mock_full_account(mock_api, repeat=False)
+    mock_full_account(mock_api)
     await setup_integration(hass, config_entry)
 
     coordinator: SensoristDataUpdateCoordinator = config_entry.runtime_data
@@ -237,7 +238,7 @@ async def test_blank_and_interpolated_rows_keep_previous_value(
         "type": 30,
         "value": 0,
     }
-    mock_api.get(URL_MEASUREMENTS, status=200, payload=placeholder, headers=None, repeat=True)
+    mock_get(mock_api, URL_MEASUREMENTS, status=200, json=placeholder, headers=None)
 
     freezer.tick(timedelta(seconds=901))
     await coordinator.async_refresh()
@@ -251,7 +252,7 @@ async def test_blank_and_interpolated_rows_keep_previous_value(
 
 
 async def test_button_measurements_are_accepted(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """Type 5 (button push) carries a real value and is kept."""
     body = copy.deepcopy(load_fixture_body("measurements_latest"))

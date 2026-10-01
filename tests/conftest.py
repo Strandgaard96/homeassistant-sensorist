@@ -9,10 +9,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from aioresponses import aioresponses
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant, State
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.sensorist.const import DOMAIN
 
@@ -84,18 +84,27 @@ def config_entry() -> MockConfigEntry:
 
 
 @pytest.fixture
-def mock_api() -> Generator[aioresponses]:
+def mock_api(aioclient_mock: AiohttpClientMocker) -> AiohttpClientMocker:
     """Intercept every outgoing aiohttp request."""
-    with aioresponses() as mocked:
-        yield mocked
+    return aioclient_mock
+
+
+def mock_get(mocked: AiohttpClientMocker, pattern: re.Pattern[str], **kwargs: Any) -> None:
+    """Register a GET response that takes precedence over earlier ones for the URL.
+
+    AiohttpClientMocker answers with the first registration that matches, so a
+    test that changes what an endpoint returns mid-run needs its newest
+    registration moved to the front.
+    """
+    mocked.get(pattern, **kwargs)
+    mocked._mocks.insert(0, mocked._mocks.pop())
 
 
 def mock_full_account(
-    mocked: aioresponses,
+    mocked: AiohttpClientMocker,
     users: dict[str, Any] | None = None,
     gateways: dict[str, Any] | None = None,
     measurements: dict[str, Any] | None = None,
-    repeat: bool = True,
 ) -> None:
     """Register the three endpoints a full setup calls."""
     if users is None:
@@ -105,24 +114,14 @@ def mock_full_account(
     if measurements is None:
         measurements = load_fixture_body("measurements_latest")
 
-    mocked.get(URL_USERS, status=200, payload=users, headers=CACHE_HEADERS, repeat=repeat)
-    mocked.get(URL_GATEWAYS, status=200, payload=gateways, headers=CACHE_HEADERS, repeat=repeat)
-    mocked.get(
-        URL_MEASUREMENTS,
-        status=200,
-        payload=measurements,
-        headers=CACHE_HEADERS,
-        repeat=repeat,
-    )
+    mock_get(mocked, URL_USERS, status=200, json=users, headers=CACHE_HEADERS)
+    mock_get(mocked, URL_GATEWAYS, status=200, json=gateways, headers=CACHE_HEADERS)
+    mock_get(mocked, URL_MEASUREMENTS, status=200, json=measurements, headers=CACHE_HEADERS)
 
 
-def request_count(mocked: aioresponses, pattern: re.Pattern[str]) -> int:
+def request_count(mocked: AiohttpClientMocker, pattern: re.Pattern[str]) -> int:
     """Count how many requests matched a URL pattern."""
-    total = 0
-    for (_method, url), calls in mocked.requests.items():
-        if pattern.match(str(url)):
-            total += len(calls)
-    return total
+    return sum(1 for _method, url, _data, _headers in mocked.mock_calls if pattern.match(str(url)))
 
 
 def get_state(hass: HomeAssistant, entity_id: str) -> State:

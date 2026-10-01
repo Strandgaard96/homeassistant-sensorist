@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 
-from aioresponses import aioresponses
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.sensorist.diagnostics import async_get_config_entry_diagnostics
 
@@ -14,7 +14,7 @@ from .conftest import mock_full_account, setup_integration
 
 
 async def test_diagnostics_redacts_credentials(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """The password and email never appear in a diagnostics dump."""
     mock_full_account(mock_api)
@@ -29,7 +29,7 @@ async def test_diagnostics_redacts_credentials(
 
 
 async def test_diagnostics_excludes_network_addresses(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """Gateway IP addresses are dropped by the coordinator and cannot leak."""
     mock_full_account(mock_api)
@@ -43,7 +43,7 @@ async def test_diagnostics_excludes_network_addresses(
 
 
 async def test_diagnostics_includes_coordinator_data(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """The dump carries enough to debug a mapping problem."""
     mock_full_account(mock_api)
@@ -59,7 +59,7 @@ async def test_diagnostics_includes_coordinator_data(
 
 
 async def test_diagnostics_redacts_identifiers(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """Hardware serials and the account id never appear in a diagnostics dump."""
     mock_full_account(mock_api)

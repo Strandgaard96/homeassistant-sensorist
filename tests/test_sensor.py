@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 from datetime import timedelta
 
-from aioresponses import aioresponses
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.components.sensor import (
     ATTR_STATE_CLASS,
@@ -25,6 +24,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.sensorist.const import DOMAIN
 
@@ -40,6 +40,7 @@ from .conftest import (
     get_state,
     load_fixture_body,
     mock_full_account,
+    mock_get,
     setup_integration,
 )
 
@@ -53,7 +54,7 @@ def entity_id_for(hass: HomeAssistant, unique_id: str) -> str:
 
 
 async def test_all_data_sources_become_entities(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """Eight data sources produce eight sensor entities."""
     mock_full_account(mock_api)
@@ -66,7 +67,7 @@ async def test_all_data_sources_become_entities(
 
 async def test_temperature_entity(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -86,7 +87,7 @@ async def test_temperature_entity(
 
 async def test_humidity_entity(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -104,7 +105,7 @@ async def test_humidity_entity(
 
 async def test_battery_is_voltage_not_percentage(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -127,7 +128,7 @@ async def test_battery_is_voltage_not_percentage(
 
 async def test_wireless_has_no_device_class(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -150,7 +151,7 @@ async def test_wireless_has_no_device_class(
 
 async def test_unknown_kind_still_produces_an_entity(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -181,7 +182,7 @@ async def test_unknown_kind_still_produces_an_entity(
 
 async def test_stale_measurement_uses_its_own_interval(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -192,7 +193,7 @@ async def test_stale_measurement_uses_its_own_interval(
     gap stays under an hour so the inventory is not refetched as a side effect.
     """
     freezer.move_to(CAPTURED_AT)
-    mock_full_account(mock_api, repeat=False)
+    mock_full_account(mock_api)
     await setup_integration(hass, config_entry)
 
     temperature_id = entity_id_for(hass, str(TEMPERATURE_DS))
@@ -200,11 +201,11 @@ async def test_stale_measurement_uses_its_own_interval(
     assert get_state(hass, temperature_id).state == "20.34"
 
     # Same payload again: the readings have not been refreshed by the hardware.
-    mock_api.get(
+    mock_get(
+        mock_api,
         URL_MEASUREMENTS,
         status=200,
-        payload=load_fixture_body("measurements_latest"),
-        repeat=True,
+        json=load_fixture_body("measurements_latest"),
     )
     freezer.tick(timedelta(minutes=50))
     await config_entry.runtime_data.async_refresh()
@@ -215,19 +216,23 @@ async def test_stale_measurement_uses_its_own_interval(
 
 
 async def test_devices_are_linked_via_the_gateway(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """Each sensor is its own device, hanging off the gateway device."""
     mock_full_account(mock_api)
     await setup_integration(hass, config_entry)
 
     registry = dr.async_get(hass)
-    gateway = registry.async_get_device(identifiers={(DOMAIN, f"gateway_{GATEWAY_ID}")})
+    gateway = registry.async_get_device_by_identifier(
+        (DOMAIN, f"gateway_{GATEWAY_ID}"), config_entry.entry_id
+    )
     assert gateway is not None
     assert gateway.serial_number == "10000000"
     assert gateway.model == "B16"
 
-    sensor = registry.async_get_device(identifiers={(DOMAIN, str(SENSOR_TWO_ID))})
+    sensor = registry.async_get_device_by_identifier(
+        (DOMAIN, str(SENSOR_TWO_ID)), config_entry.entry_id
+    )
     assert sensor is not None
     assert sensor.manufacturer == "Sensorist"
     assert sensor.model == "S2.0"

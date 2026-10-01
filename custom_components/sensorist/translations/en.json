@@ -31,7 +31,6 @@
     },
     "abort": {
       "already_configured": "This account is already configured",
-      "reauth_successful": "Re-authentication was successful",
       "wrong_account": "Those credentials are for a different Sensorist account."
     }
   },

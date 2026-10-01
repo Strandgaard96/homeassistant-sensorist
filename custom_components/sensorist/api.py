@@ -63,7 +63,7 @@ class SensoristApi:
     def __init__(self, session: aiohttp.ClientSession, email: str, password: str) -> None:
         """Initialise the client with a shared aiohttp session."""
         self._session = session
-        self._auth = aiohttp.BasicAuth(email, password)
+        self._authorization = aiohttp.encode_basic_auth(email, password)
         self._cache: dict[CacheKey, _CacheEntry] = {}
         self._locks: dict[CacheKey, asyncio.Lock] = {}
         self._max_age_by_path: dict[str, int] = {}
@@ -157,9 +157,8 @@ class SensoristApi:
             response = await self._session.get(
                 url,
                 params=params,
-                auth=self._auth,
                 timeout=timeout,
-                headers={"Accept": "application/json"},
+                headers={"Accept": "application/json", "Authorization": self._authorization},
             )
             async with response:
                 status = response.status

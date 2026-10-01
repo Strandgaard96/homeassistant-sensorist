@@ -2,7 +2,7 @@
 name = "homeassistant-sensorist"
 version = "0.1.0"
 description = "Home Assistant custom integration for Sensorist environment sensors"
-requires-python = ">=3.13"
+requires-python = ">=3.14.2"
 
 [dependency-groups]
 dev = [
@@ -10,13 +10,12 @@ dev = [
     "pytest",
     "pytest-homeassistant-custom-component",
     "pytest-asyncio",
-    "aioresponses",
     "ruff",
     "mypy",
 ]
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py314"
 line-length = 100
 
 [tool.ruff.lint]
@@ -64,7 +63,7 @@ ignore = [
 known-first-party = ["custom_components"]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 strict = true
 # custom_components has no __init__.py, so tell mypy the repo root is the base
 # for package names rather than letting it infer two names for one file.
@@ -75,7 +74,7 @@ warn_unreachable = true
 disallow_any_generics = true
 
 [[tool.mypy.overrides]]
-module = ["aioresponses.*", "pytest_homeassistant_custom_component.*"]
+module = ["pytest_homeassistant_custom_component.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

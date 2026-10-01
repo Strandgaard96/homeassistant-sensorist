@@ -9,7 +9,6 @@ from __future__ import annotations
 import copy
 
 import pytest
-from aioresponses import aioresponses
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import (
@@ -22,6 +21,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.sensorist.const import DOMAIN
 
@@ -47,7 +47,7 @@ def entity_id_for(hass: HomeAssistant, data_source_id: int) -> str:
 
 async def test_fahrenheit_account(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -71,7 +71,7 @@ async def test_fahrenheit_account(
 
 async def test_battery_reported_as_percentage(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
@@ -95,7 +95,7 @@ async def test_battery_reported_as_percentage(
 
 
 async def test_unrecognised_unit_on_a_known_kind(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A unit we cannot validate is passed through without a device class."""
     gateways = copy.deepcopy(load_fixture_body("gateways_with_slaves"))
@@ -112,7 +112,7 @@ async def test_unrecognised_unit_on_a_known_kind(
 
 
 async def test_precision_comes_from_the_api(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A data source that declares more precision is displayed with it."""
     gateways = copy.deepcopy(load_fixture_body("gateways_with_slaves"))
@@ -129,7 +129,7 @@ async def test_precision_comes_from_the_api(
 
 
 async def test_multiple_gateways_are_fetched_separately(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """The API rejects mixed-gateway requests, so each gateway gets its own."""
     gateways = copy.deepcopy(load_fixture_body("gateways_with_slaves"))
@@ -163,11 +163,14 @@ async def test_multiple_gateways_are_fetched_separately(
     assert len([e for e in entities if e.domain == "binary_sensor"]) == 2
 
     devices = dr.async_get(hass)
-    assert devices.async_get_device(identifiers={(DOMAIN, "gateway_7326")}) is not None
+    assert (
+        devices.async_get_device_by_identifier((DOMAIN, "gateway_7326"), config_entry.entry_id)
+        is not None
+    )
 
 
 async def test_account_with_no_hardware(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """An empty account sets up cleanly with no entities and no measurement call."""
     mock_full_account(mock_api, gateways={"code": 200, "max_age": 900, "gateways": []})
