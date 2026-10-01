@@ -13,6 +13,13 @@ uv run mypy custom_components/sensorist    # strict
 
 All three clean before committing.
 
+## Releases
+
+Release Please (`.github/workflows/release.yml`) keeps a release PR open on `main`. Merging it bumps `manifest.json` + `pyproject.toml`, writes `CHANGELOG.md`, and publishes the `vX.Y.Z` GitHub release that HACS installs. So:
+
+- Commit messages must be Conventional Commits: `fix:` → patch, `feat:` → minor, `feat!:` → minor while < 1.0. `docs:`/`test:`/`chore:`/`ci:` don't release.
+- Never edit `version` by hand.
+
 ## Architecture
 
 - `api.py` — `SensoristApi`. Caches every response until its `cache-control: max-age` expires; tracks max-age per path (`max_age_for`). Errors: `SensoristAuthError` / `SensoristConnectionError` / `SensoristApiError`.
