@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import copy
 
-from aioresponses import aioresponses
 from homeassistant.const import ATTR_DEVICE_CLASS, STATE_OFF, STATE_ON, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.sensorist.const import DOMAIN
 
@@ -25,7 +25,7 @@ def entity_id_for(hass: HomeAssistant) -> str:
 
 
 async def test_connected_gateway(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A null disconnected_date means the gateway is online."""
     mock_full_account(mock_api)
@@ -44,7 +44,7 @@ async def test_connected_gateway(
 
 
 async def test_disconnected_gateway_reports_when(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A populated disconnected_date turns the entity off and is exposed."""
     gateways = copy.deepcopy(load_fixture_body("gateways_with_slaves"))
@@ -59,7 +59,7 @@ async def test_disconnected_gateway_reports_when(
 
 
 async def test_one_entity_per_gateway(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """The single gateway in the fixtures yields exactly one connectivity entity."""
     mock_full_account(mock_api)

@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import copy
 
-from aioresponses import aioresponses
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.sensorist.const import DOMAIN
 from custom_components.sensorist.coordinator import SensoristDataUpdateCoordinator
@@ -28,7 +28,7 @@ from .conftest import (
 
 
 async def test_gateway_without_id_is_skipped(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A gateway with no id cannot be addressed, so it is dropped."""
     gateways = copy.deepcopy(load_fixture_body("gateways_with_slaves"))
@@ -42,7 +42,7 @@ async def test_gateway_without_id_is_skipped(
 
 
 async def test_data_source_without_id_is_skipped(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """One unusable data source must not cost the other seven."""
     gateways = copy.deepcopy(load_fixture_body("gateways_with_slaves"))
@@ -55,7 +55,7 @@ async def test_data_source_without_id_is_skipped(
 
 
 async def test_missing_type_object_still_yields_an_entity(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A data source with no type block falls back to an undescribed sensor."""
     gateways = copy.deepcopy(load_fixture_body("gateways_with_slaves"))
@@ -74,7 +74,7 @@ async def test_missing_type_object_still_yields_an_entity(
 
 
 async def test_non_numeric_measurement_is_ignored(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A value that is not a number is not a reading."""
     measurements = copy.deepcopy(load_fixture_body("measurements_latest"))
@@ -87,7 +87,7 @@ async def test_non_numeric_measurement_is_ignored(
 
 
 async def test_data_source_without_measurement_is_unavailable(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A data source the API returned no reading for has nothing to show."""
     measurements = copy.deepcopy(load_fixture_body("measurements_latest"))
@@ -104,7 +104,7 @@ async def test_data_source_without_measurement_is_unavailable(
 
 async def test_measurement_without_timestamp_is_trusted(
     hass: HomeAssistant,
-    mock_api: aioresponses,
+    mock_api: AiohttpClientMocker,
     config_entry: MockConfigEntry,
 ) -> None:
     """With no date, staleness cannot be judged, so the value still shows."""
@@ -121,7 +121,7 @@ async def test_measurement_without_timestamp_is_trusted(
 
 
 async def test_measurements_for_unknown_ids_are_ignored(
-    hass: HomeAssistant, mock_api: aioresponses, config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:
     """A reading for something not in the inventory cannot create an entity."""
     measurements = copy.deepcopy(load_fixture_body("measurements_latest"))

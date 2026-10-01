@@ -12,12 +12,13 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
-    PERCENTAGE,
     EntityCategory,
     UnitOfElectricPotential,
+    UnitOfRatio,
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
@@ -34,7 +35,7 @@ from .coordinator import (
     SensoristDataUpdateCoordinator,
     SensoristMeasurement,
 )
-from .entity import SensoristEntity, sensor_device_info
+from .entity import SensoristEntity, gateway_device_identifier, sensor_device_info
 
 # The coordinator fetches everything in one request set; entities never poll.
 PARALLEL_UPDATES = 0
@@ -55,7 +56,7 @@ SENSOR_DESCRIPTIONS: dict[int, SensorEntityDescription] = {
         translation_key="humidity",
         device_class=SensorDeviceClass.HUMIDITY,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=PERCENTAGE,
+        native_unit_of_measurement=UnitOfRatio.PERCENTAGE,
         suggested_display_precision=0,
     ),
     # The API reports battery in volts, not percent, so the BATTERY device class
@@ -77,7 +78,7 @@ SENSOR_DESCRIPTIONS: dict[int, SensorEntityDescription] = {
         key="wireless",
         translation_key="wireless",
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=PERCENTAGE,
+        native_unit_of_measurement=UnitOfRatio.PERCENTAGE,
         suggested_display_precision=0,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -93,7 +94,7 @@ UNIT_BY_API_NAME: dict[str, str] = {
     "°f": UnitOfTemperature.FAHRENHEIT,
     "c": UnitOfTemperature.CELSIUS,
     "f": UnitOfTemperature.FAHRENHEIT,
-    "%": PERCENTAGE,
+    "%": UnitOfRatio.PERCENTAGE,
     "v": UnitOfElectricPotential.VOLT,
     "mv": UnitOfElectricPotential.MILLIVOLT,
 }
@@ -108,7 +109,7 @@ def _device_class_for(kind_id: int | None, unit: str) -> SensorDeviceClass | Non
         return SensorDeviceClass.TEMPERATURE
     if unit in VOLTAGE_UNITS:
         return SensorDeviceClass.VOLTAGE
-    if unit == PERCENTAGE:
+    if unit == UnitOfRatio.PERCENTAGE:
         if kind_id == KIND_BATTERY:
             # A sensor model that reports a real percentage can use the battery
             # device class, unlike the volt-reporting hardware seen so far.
@@ -184,8 +185,17 @@ async def async_setup_entry(
 ) -> None:
     """Set up Sensorist sensors from a config entry."""
     coordinator = entry.runtime_data
+    # The gateway devices were registered in async_setup_entry.
+    gateway_device_ids = {
+        gateway_id: dr.async_get_device_id_by_identifier(
+            hass, gateway_device_identifier(gateway_id), config_entry_id=entry.entry_id
+        )
+        for gateway_id in coordinator.data.gateways
+    }
     async_add_entities(
-        SensoristSensorEntity(coordinator, data_source)
+        SensoristSensorEntity(
+            coordinator, data_source, gateway_device_ids[data_source.sensor.gateway.id]
+        )
         for data_source in coordinator.data.data_sources.values()
     )
 
@@ -197,6 +207,7 @@ class SensoristSensorEntity(SensoristEntity, SensorEntity):
         self,
         coordinator: SensoristDataUpdateCoordinator,
         data_source: SensoristDataSource,
+        gateway_device_id: str,
     ) -> None:
         """Initialise the entity for one data source."""
         super().__init__(coordinator)
@@ -208,7 +219,7 @@ class SensoristSensorEntity(SensoristEntity, SensorEntity):
             self._attr_name = data_source.title
         self.entity_description = description
         self._attr_unique_id = str(data_source.id)
-        self._attr_device_info = sensor_device_info(data_source.sensor)
+        self._attr_device_info = sensor_device_info(data_source.sensor, gateway_device_id)
 
     @property
     def _data_source(self) -> SensoristDataSource | None:

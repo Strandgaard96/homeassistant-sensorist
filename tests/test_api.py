@@ -6,10 +6,10 @@ import asyncio
 
 import aiohttp
 import pytest
-from aioresponses import aioresponses
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
 from custom_components.sensorist.api import (
     SensoristApi,
@@ -25,6 +25,7 @@ from .conftest import (
     URL_MEASUREMENTS,
     URL_USERS,
     load_fixture_body,
+    mock_get,
     request_count,
 )
 
@@ -35,13 +36,14 @@ def build_api(hass: HomeAssistant) -> SensoristApi:
 
 
 async def test_max_age_cache_prevents_second_request(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """A repeat call inside the max-age window must not touch the network."""
-    mock_api.get(
+    mock_get(
+        mock_api,
         URL_USERS,
         status=200,
-        payload=load_fixture_body("users"),
+        json=load_fixture_body("users"),
         headers=CACHE_HEADERS,
     )
     api = build_api(hass)
@@ -54,11 +56,11 @@ async def test_max_age_cache_prevents_second_request(
 
 
 async def test_cache_expires_after_max_age(
-    hass: HomeAssistant, mock_api: aioresponses, freezer: FrozenDateTimeFactory
+    hass: HomeAssistant, mock_api: AiohttpClientMocker, freezer: FrozenDateTimeFactory
 ) -> None:
     """Once max-age has elapsed the client fetches again."""
     body = load_fixture_body("users")
-    mock_api.get(URL_USERS, status=200, payload=body, headers=CACHE_HEADERS, repeat=True)
+    mock_get(mock_api, URL_USERS, status=200, json=body, headers=CACHE_HEADERS)
     api = build_api(hass)
 
     await api.async_get_user()
@@ -70,13 +72,14 @@ async def test_cache_expires_after_max_age(
 
 
 async def test_concurrent_calls_share_one_request(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """Two simultaneous calls for the same URL must not race into two fetches."""
-    mock_api.get(
+    mock_get(
+        mock_api,
         URL_USERS,
         status=200,
-        payload=load_fixture_body("users"),
+        json=load_fixture_body("users"),
         headers=CACHE_HEADERS,
     )
     api = build_api(hass)
@@ -86,12 +89,15 @@ async def test_concurrent_calls_share_one_request(
     assert request_count(mock_api, URL_USERS) == 1
 
 
-async def test_max_age_recorded_per_path(hass: HomeAssistant, mock_api: aioresponses) -> None:
+async def test_max_age_recorded_per_path(
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
+) -> None:
     """The client remembers the max-age it saw so the coordinator can honour it."""
-    mock_api.get(
+    mock_get(
+        mock_api,
         URL_MEASUREMENTS,
         status=200,
-        payload=load_fixture_body("measurements_latest"),
+        json=load_fixture_body("measurements_latest"),
         headers={"cache-control": "max-age=1800, private"},
     )
     api = build_api(hass)
@@ -102,10 +108,10 @@ async def test_max_age_recorded_per_path(hass: HomeAssistant, mock_api: aiorespo
 
 
 async def test_missing_cache_control_falls_back_to_body(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """With no header, the body's own max_age field is used."""
-    mock_api.get(URL_USERS, status=200, payload=load_fixture_body("users"))
+    mock_get(mock_api, URL_USERS, status=200, json=load_fixture_body("users"))
     api = build_api(hass)
 
     await api.async_get_user()
@@ -114,9 +120,9 @@ async def test_missing_cache_control_falls_back_to_body(
 
 
 @pytest.mark.parametrize("status", [401, 403])
-async def test_auth_error(hass: HomeAssistant, mock_api: aioresponses, status: int) -> None:
+async def test_auth_error(hass: HomeAssistant, mock_api: AiohttpClientMocker, status: int) -> None:
     """Rejected credentials raise SensoristAuthError."""
-    mock_api.get(URL_USERS, status=status)
+    mock_get(mock_api, URL_USERS, status=status)
     api = build_api(hass)
 
     with pytest.raises(SensoristAuthError):
@@ -124,10 +130,10 @@ async def test_auth_error(hass: HomeAssistant, mock_api: aioresponses, status: i
 
 
 async def test_server_error_is_connection_error(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """A 5xx is treated as a transient connection problem."""
-    mock_api.get(URL_USERS, status=503)
+    mock_get(mock_api, URL_USERS, status=503)
     api = build_api(hass)
 
     with pytest.raises(SensoristConnectionError):
@@ -135,28 +141,32 @@ async def test_server_error_is_connection_error(
 
 
 async def test_network_failure_is_connection_error(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """An aiohttp client error is wrapped, never leaked."""
-    mock_api.get(URL_USERS, exception=aiohttp.ClientError("boom"))
+    mock_get(mock_api, URL_USERS, exc=aiohttp.ClientError("boom"))
     api = build_api(hass)
 
     with pytest.raises(SensoristConnectionError):
         await api.async_get_user()
 
 
-async def test_timeout_is_connection_error(hass: HomeAssistant, mock_api: aioresponses) -> None:
+async def test_timeout_is_connection_error(
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
+) -> None:
     """A timeout is wrapped as a connection error, not left to bubble."""
-    mock_api.get(URL_USERS, exception=TimeoutError)
+    mock_get(mock_api, URL_USERS, exc=TimeoutError)
     api = build_api(hass)
 
     with pytest.raises(SensoristConnectionError):
         await api.async_get_user()
 
 
-async def test_unexpected_status_is_api_error(hass: HomeAssistant, mock_api: aioresponses) -> None:
+async def test_unexpected_status_is_api_error(
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
+) -> None:
     """Anything else the API returns raises SensoristApiError."""
-    mock_api.get(URL_USERS, status=418)
+    mock_get(mock_api, URL_USERS, status=418)
     api = build_api(hass)
 
     with pytest.raises(SensoristApiError):
@@ -164,10 +174,10 @@ async def test_unexpected_status_is_api_error(hass: HomeAssistant, mock_api: aio
 
 
 async def test_missing_payload_key_is_api_error(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """A 200 without the expected payload key is still an error."""
-    mock_api.get(URL_USERS, status=200, payload={"code": 200}, headers=CACHE_HEADERS)
+    mock_get(mock_api, URL_USERS, status=200, json={"code": 200}, headers=CACHE_HEADERS)
     api = build_api(hass)
 
     with pytest.raises(SensoristApiError):
@@ -175,7 +185,7 @@ async def test_missing_payload_key_is_api_error(
 
 
 async def test_empty_data_source_list_skips_request(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """Asking for no data sources must not produce a pointless API call."""
     api = build_api(hass)
@@ -184,14 +194,16 @@ async def test_empty_data_source_list_skips_request(
     assert request_count(mock_api, URL_MEASUREMENTS) == 0
 
 
-async def test_non_json_body_is_api_error(hass: HomeAssistant, mock_api: aioresponses) -> None:
+async def test_non_json_body_is_api_error(
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
+) -> None:
     """A 200 that is not JSON raises SensoristApiError."""
-    mock_api.get(
+    mock_get(
+        mock_api,
         URL_USERS,
         status=200,
-        body="<html>maintenance</html>",
-        content_type="text/html",
-        headers=CACHE_HEADERS,
+        text="<html>maintenance</html>",
+        headers={**CACHE_HEADERS, "content-type": "text/html"},
     )
     api = build_api(hass)
 
@@ -199,9 +211,11 @@ async def test_non_json_body_is_api_error(hass: HomeAssistant, mock_api: aioresp
         await api.async_get_user()
 
 
-async def test_non_object_body_is_api_error(hass: HomeAssistant, mock_api: aioresponses) -> None:
+async def test_non_object_body_is_api_error(
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
+) -> None:
     """A JSON body that is not an object raises SensoristApiError."""
-    mock_api.get(URL_USERS, status=200, payload=[1, 2, 3], headers=CACHE_HEADERS)
+    mock_get(mock_api, URL_USERS, status=200, json=[1, 2, 3], headers=CACHE_HEADERS)
     api = build_api(hass)
 
     with pytest.raises(SensoristApiError):
@@ -209,10 +223,10 @@ async def test_non_object_body_is_api_error(hass: HomeAssistant, mock_api: aiore
 
 
 async def test_application_error_code_is_api_error(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """An HTTP 200 carrying a non-200 application code is an error."""
-    mock_api.get(URL_USERS, status=200, payload={"code": 500}, headers=CACHE_HEADERS)
+    mock_get(mock_api, URL_USERS, status=200, json={"code": 500}, headers=CACHE_HEADERS)
     api = build_api(hass)
 
     with pytest.raises(SensoristApiError):
@@ -220,10 +234,10 @@ async def test_application_error_code_is_api_error(
 
 
 async def test_missing_gateways_array_is_api_error(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """A /gateways response without a gateways array is an error."""
-    mock_api.get(URL_GATEWAYS, status=200, payload={"code": 200}, headers=CACHE_HEADERS)
+    mock_get(mock_api, URL_GATEWAYS, status=200, json={"code": 200}, headers=CACHE_HEADERS)
     api = build_api(hass)
 
     with pytest.raises(SensoristApiError):
@@ -231,10 +245,10 @@ async def test_missing_gateways_array_is_api_error(
 
 
 async def test_missing_measurements_object_is_api_error(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """A /measurements response without a measurements object is an error."""
-    mock_api.get(URL_MEASUREMENTS, status=200, payload={"code": 200}, headers=CACHE_HEADERS)
+    mock_get(mock_api, URL_MEASUREMENTS, status=200, json={"code": 200}, headers=CACHE_HEADERS)
     api = build_api(hass)
 
     with pytest.raises(SensoristApiError):
@@ -242,13 +256,14 @@ async def test_missing_measurements_object_is_api_error(
 
 
 async def test_unparseable_cache_control_falls_back_to_body(
-    hass: HomeAssistant, mock_api: aioresponses
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
 ) -> None:
     """A cache-control header without max-age defers to the body's max_age."""
-    mock_api.get(
+    mock_get(
+        mock_api,
         URL_USERS,
         status=200,
-        payload=load_fixture_body("users"),
+        json=load_fixture_body("users"),
         headers={"cache-control": "no-store"},
     )
     api = build_api(hass)
@@ -258,10 +273,12 @@ async def test_unparseable_cache_control_falls_back_to_body(
     assert api.max_age_for("/users") == 900
 
 
-async def test_invalidate_all_forces_refetch(hass: HomeAssistant, mock_api: aioresponses) -> None:
+async def test_invalidate_all_forces_refetch(
+    hass: HomeAssistant, mock_api: AiohttpClientMocker
+) -> None:
     """Invalidating with no path drops every cached response."""
     body = load_fixture_body("users")
-    mock_api.get(URL_USERS, status=200, payload=body, headers=CACHE_HEADERS, repeat=True)
+    mock_get(mock_api, URL_USERS, status=200, json=body, headers=CACHE_HEADERS)
     api = build_api(hass)
 
     await api.async_get_user()

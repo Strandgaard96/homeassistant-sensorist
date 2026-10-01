@@ -6,7 +6,7 @@ Home Assistant custom integration (HACS) for Sensorist environment sensors via t
 
 ```bash
 uv sync
-uv run pytest                              # pytest-homeassistant-custom-component + aioresponses
+uv run pytest                              # pytest-homeassistant-custom-component (aioclient_mock)
 uv run ruff check .
 uv run mypy custom_components/sensorist    # strict
 ```

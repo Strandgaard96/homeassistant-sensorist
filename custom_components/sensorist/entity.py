@@ -34,8 +34,8 @@ def gateway_device_info(gateway: SensoristGateway) -> DeviceInfo:
     )
 
 
-def sensor_device_info(sensor: SensoristSensor) -> DeviceInfo:
-    """Build device info for a Sensorist sensor, linked to its gateway."""
+def sensor_device_info(sensor: SensoristSensor, gateway_device_id: str) -> DeviceInfo:
+    """Build device info for a Sensorist sensor, linked to its gateway's device."""
     return DeviceInfo(
         identifiers={(DOMAIN, str(sensor.id))},
         manufacturer=MANUFACTURER,
@@ -43,7 +43,7 @@ def sensor_device_info(sensor: SensoristSensor) -> DeviceInfo:
         name=sensor.title,
         serial_number=sensor.serial,
         sw_version=sensor.firmware,
-        via_device=gateway_device_identifier(sensor.gateway.id),
+        via_device_id=gateway_device_id,
     )
 
 

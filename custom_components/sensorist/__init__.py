@@ -19,9 +19,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: SensoristConfigEntry) ->
 
     entry.runtime_data = coordinator
 
-    # Register the gateways before the platforms load. A sensor's via_device
-    # link is resolved when its device is created, so the gateway it points at
-    # has to exist first -- and platform setup order is not guaranteed.
+    # Register the gateways before the platforms load. A sensor device links to
+    # its gateway by device id, so the gateway device has to exist first -- and
+    # platform setup order is not guaranteed.
     device_registry = dr.async_get(hass)
     for gateway in coordinator.data.gateways.values():
         device_registry.async_get_or_create(
