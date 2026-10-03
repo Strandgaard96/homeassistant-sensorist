@@ -12,6 +12,7 @@ uv run mypy custom_components/sensorist    # strict
 ```
 
 All three clean before committing.
+CI (`.github/workflows/ci.yml`) runs the same checks; `validate.yml` runs hassfest + HACS.
 
 ## Releases
 
